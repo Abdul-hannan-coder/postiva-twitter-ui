@@ -1,6 +1,7 @@
 "use client"
 
 import { DashboardLayout } from "@/components/DashboardLayout"
+import AuthGuard from "@/lib/hooks/auth/AuthGuard"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -17,7 +18,9 @@ import {
   Play
 } from "lucide-react"
 import Link from "next/link"
-import { useState } from "react"
+import { useRef, useState } from "react"
+import usePostTwitterVideo from "@/lib/hooks/twitter/media/usePostTwitterVideo"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 
 export default function VideoTextPostPage() {
   const [formData, setFormData] = useState({
@@ -25,6 +28,11 @@ export default function VideoTextPostPage() {
     scheduledDate: "",
     scheduledTime: ""
   })
+  const [file, setFile] = useState<File | null>(null)
+  const [preview, setPreview] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
+
+  const { isSubmitting, error, result, submit, reset } = usePostTwitterVideo()
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({
@@ -33,15 +41,24 @@ export default function VideoTextPostPage() {
     })
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0]
+    setFile(f || null)
+    setPreview(f ? URL.createObjectURL(f) : null)
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Handle post creation logic here
-    console.log("Creating video + text post:", formData)
+    if (!file) return
+    try {
+      await submit({ file, title: formData.text })
+    } catch {}
   }
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+  <AuthGuard>
+  <div className="space-y-6">
         {/* Header */}
         <div className="relative overflow-hidden bg-linear-to-br from-black via-gray-900 to-black rounded-2xl p-8">
           <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
@@ -72,22 +89,32 @@ export default function VideoTextPostPage() {
                 <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <p className="text-gray-300 mb-2">Drag and drop video here</p>
                 <p className="text-gray-400 text-sm mb-4">or click to browse</p>
-                <Button variant="outline" className="bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600 hover:text-white">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="video/*"
+                  className="hidden"
+                  onChange={handleFileSelected}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600 hover:text-white"
+                  onClick={() => fileInputRef.current?.click()}
+                >
                   Choose Video File
                 </Button>
               </div>
               
               {/* Video Preview */}
               <div className="mt-6">
-                <div className="aspect-video bg-gray-700 rounded-lg flex items-center justify-center relative">
-                  <Play className="h-12 w-12 text-gray-500" />
-                  <div className="absolute bottom-4 left-4 right-4">
-                    <div className="w-full bg-gray-600 rounded-full h-1">
-                      <div className="bg-purple-500 h-1 rounded-full" style={{width: '30%'}}></div>
-                    </div>
-                    <p className="text-gray-400 text-sm mt-2">0:45 / 2:30</p>
+                {preview ? (
+                  <video src={preview} controls className="aspect-video w-full rounded-lg" />
+                ) : (
+                  <div className="aspect-video bg-gray-700 rounded-lg flex items-center justify-center relative">
+                    <Play className="h-12 w-12 text-gray-500" />
                   </div>
-                </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -120,6 +147,20 @@ export default function VideoTextPostPage() {
                     {formData.text.length}/280 characters
                   </p>
                 </div>
+
+                {/* Error / Success */}
+                {error && (
+                  <Alert variant="destructive">
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
+                {result && (
+                  <Alert>
+                    <AlertDescription>
+                      Posted! <a href={result.tweet_url} target="_blank" rel="noreferrer" className="underline">View on X</a>
+                    </AlertDescription>
+                  </Alert>
+                )}
 
                 {/* Scheduling */}
                 <div className="space-y-4">
@@ -162,18 +203,20 @@ export default function VideoTextPostPage() {
                 <div className="flex space-x-4 pt-4">
                   <Button
                     type="submit"
-                    className="flex-1 bg-purple-500 hover:bg-purple-600 text-white font-semibold py-3 rounded-2xl transition-all duration-300"
+                    disabled={isSubmitting || !file}
+                    className="flex-1 bg-purple-500 hover:bg-purple-600 text-white font-semibold py-3 rounded-2xl transition-all duration-300 disabled:opacity-60"
                   >
                     <Send className="h-4 w-4 mr-2" />
-                    Post Now
+                    {isSubmitting ? 'Posting…' : 'Post Now'}
                   </Button>
                   <Button
                     type="button"
                     variant="outline"
                     className="bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600 hover:text-white px-6 py-3 rounded-2xl"
+                    onClick={() => { setFile(null); setPreview(null); reset() }}
                   >
                     <Clock className="h-4 w-4 mr-2" />
-                    Schedule
+                    Clear
                   </Button>
                 </div>
               </form>
@@ -222,6 +265,7 @@ export default function VideoTextPostPage() {
           </CardContent>
         </Card>
       </div>
+      </AuthGuard>
     </DashboardLayout>
   )
 }

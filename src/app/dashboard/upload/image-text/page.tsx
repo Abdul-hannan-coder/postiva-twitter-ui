@@ -17,7 +17,9 @@ import {
   Send
 } from "lucide-react"
 import Link from "next/link"
-import { useState } from "react"
+import { useRef, useState } from "react"
+import usePostTwitterImage from "@/lib/hooks/twitter/media/usePostTwitterImage"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 
 export default function ImageTextPostPage() {
   const [formData, setFormData] = useState({
@@ -25,6 +27,11 @@ export default function ImageTextPostPage() {
     scheduledDate: "",
     scheduledTime: ""
   })
+  const [files, setFiles] = useState<File[]>([])
+  const [previews, setPreviews] = useState<string[]>([])
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
+
+  const { isSubmitting, error, result, submit, reset } = usePostTwitterImage()
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({
@@ -33,10 +40,18 @@ export default function ImageTextPostPage() {
     })
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleFilesSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = Array.from(e.target.files || [])
+    setFiles(f)
+    setPreviews(f.map((file) => URL.createObjectURL(file)))
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Handle post creation logic here
-    console.log("Creating image + text post:", formData)
+    if (!files.length) return
+    try {
+      await submit({ file: files[0], title: formData.text })
+    } catch {}
   }
 
   return (
@@ -73,19 +88,35 @@ export default function ImageTextPostPage() {
                 <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <p className="text-gray-300 mb-2">Drag and drop images here</p>
                 <p className="text-gray-400 text-sm mb-4">or click to browse</p>
-                <Button variant="outline" className="bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600 hover:text-white">
-                  Choose Files
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple={false}
+                  className="hidden"
+                  onChange={handleFilesSelected}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600 hover:text-white"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  Choose File
                 </Button>
               </div>
               
               {/* Image Preview */}
               <div className="mt-6 grid grid-cols-2 gap-4">
-                <div className="aspect-square bg-gray-700 rounded-lg flex items-center justify-center">
-                  <Image className="h-8 w-8 text-gray-500" />
-                </div>
-                <div className="aspect-square bg-gray-700 rounded-lg flex items-center justify-center">
-                  <Image className="h-8 w-8 text-gray-500" />
-                </div>
+                {previews.length === 0 ? (
+                  <div className="aspect-square bg-gray-700 rounded-lg flex items-center justify-center">
+                    <Image className="h-8 w-8 text-gray-500" />
+                  </div>
+                ) : (
+                  previews.map((src, idx) => (
+                    <img key={idx} src={src} alt="Selected image preview" className="aspect-square w-full h-auto object-cover rounded-lg" />
+                  ))
+                )}
               </div>
             </CardContent>
           </Card>
@@ -118,6 +149,20 @@ export default function ImageTextPostPage() {
                     {formData.text.length}/280 characters
                   </p>
                 </div>
+
+                {/* Error / Success */}
+                {error && (
+                  <Alert variant="destructive">
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
+                {result && (
+                  <Alert>
+                    <AlertDescription>
+                      Posted! <a href={result.tweet_url} target="_blank" rel="noreferrer" className="underline">View on X</a>
+                    </AlertDescription>
+                  </Alert>
+                )}
 
                 {/* Scheduling */}
                 <div className="space-y-4">
@@ -160,18 +205,24 @@ export default function ImageTextPostPage() {
                 <div className="flex space-x-4 pt-4">
                   <Button
                     type="submit"
-                    className="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 rounded-2xl transition-all duration-300"
+                    disabled={isSubmitting || !files.length}
+                    className="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 rounded-2xl transition-all duration-300 disabled:opacity-60"
                   >
                     <Send className="h-4 w-4 mr-2" />
-                    Post Now
+                    {isSubmitting ? 'Posting…' : 'Post Now'}
                   </Button>
                   <Button
                     type="button"
                     variant="outline"
                     className="bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600 hover:text-white px-6 py-3 rounded-2xl"
+                    onClick={() => {
+                      setFiles([])
+                      setPreviews([])
+                      reset()
+                    }}
                   >
                     <Clock className="h-4 w-4 mr-2" />
-                    Schedule
+                    Clear
                   </Button>
                 </div>
               </form>
