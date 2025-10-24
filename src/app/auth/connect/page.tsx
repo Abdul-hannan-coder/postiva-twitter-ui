@@ -4,20 +4,11 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Header } from "@/components/Home-Content/Header"
 import { Footer } from "@/components/Home-Content/Footer"
-import { ExternalLink, Loader2 } from "lucide-react"
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { ExternalLink, Loader2, AlertCircle } from "lucide-react"
+import useTwitterAuth from "@/lib/hooks/auth/platforms/twitter/useTwitterAuth"
 
 export default function ConnectPage() {
-  const [isConnecting, setIsConnecting] = useState(false)
-  const router = useRouter()
-
-  const handleConnectTwitter = () => {
-    setIsConnecting(true)
-    setTimeout(() => {
-      router.push("/dashboard")
-    }, 3000)
-  }
+  const { isLoading, error, initiateTwitterConnect } = useTwitterAuth()
 
   return (
     <div className="min-h-screen bg-black">
@@ -47,11 +38,11 @@ export default function ConnectPage() {
 
                 {/* Connect Button */}
                 <Button
-                  onClick={handleConnectTwitter}
-                  disabled={isConnecting}
+                  onClick={() => initiateTwitterConnect()}
+                  disabled={isLoading}
                   className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-4 rounded-2xl transition-all duration-300 mb-8"
                 >
-                  {isConnecting ? (
+                  {isLoading ? (
                     <>
                       <Loader2 className="h-5 w-5 mr-2 animate-spin" />
                       Connecting...
@@ -65,15 +56,23 @@ export default function ConnectPage() {
                 </Button>
 
                 {/* Loading Bar */}
-                {isConnecting && (
+                {isLoading && (
                   <div className="w-full bg-gray-700 rounded-full h-2 mb-4">
                     <div className="bg-blue-500 h-2 rounded-full animate-pulse" style={{width: '100%'}}></div>
                   </div>
                 )}
 
+                {/* Error */}
+                {error && (
+                  <div className="flex items-center justify-center gap-2 text-red-300 bg-red-900/30 border border-red-800 rounded-lg px-3 py-2 mb-4">
+                    <AlertCircle className="h-4 w-4" />
+                    <span>{error}</span>
+                  </div>
+                )}
+
                 {/* Info Text */}
                 <p className="text-gray-400 text-sm">
-                  {isConnecting 
+                  {isLoading 
                     ? "Please wait while we connect your Twitter account..." 
                     : "Connect your Twitter account to start automating your posts"
                   }
