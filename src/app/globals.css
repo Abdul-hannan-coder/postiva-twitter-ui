@@ -1,0 +1,51 @@
+@import "tailwindcss";
+
+/* Global CSS for Twitter-like Dark Theme */
+
+:root {
+  /* Primary Colors */
+  --twitter-blue: #1d9bf0;
+  --twitter-blue-hover: #1a8cd8;
+  
+  /* Background Colors */
+  --bg-primary: #000000;
+  --bg-secondary: #16181c;
+  --bg-tertiary: #1e2125;
+  --bg-hover: #181818;
+  
+  /* Text Colors */
+  --text-primary: #e7e9ea;
+  --text-secondary: #71767b;
+  --text-link: #1d9bf0;
+  
+  /* Border Colors */
+  --border-primary: #2f3336;
+  --border-secondary: #3e4144;
+  
+  /* Button Colors */
+  --btn-primary-bg: #1d9bf0;
+  --btn-primary-hover: #1a8cd8;
+  --btn-secondary-bg: transparent;
+  --btn-secondary-border: #536471;
+  
+  /* Sidebar */
+  --sidebar-bg: #000000;
+  --sidebar-hover: #16181c;
+  
+  /* Accent Colors */
+  --accent-red: #f4212e;
+  --accent-green: #00ba7c;
+  --accent-yellow: #ffd400;
+
+  /* Legacy variables for compatibility */
+  --background: var(--bg-primary);
+  --foreground: var(--text-primary);
+}
+
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+}
